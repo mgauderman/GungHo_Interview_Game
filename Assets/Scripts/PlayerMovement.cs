@@ -23,6 +23,7 @@ public class PlayerMovement : MonoBehaviour
 
     // jumping
     private bool jump;
+    private bool midJump;
     [SerializeField]
     private float jumpForce;
     private bool airControl;
@@ -43,7 +44,7 @@ public class PlayerMovement : MonoBehaviour
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         jump = false;
-        airControl = false;
+        airControl = true;
         facingLeft = true;
 
         //otherHealth.Initialize("Healthy");
@@ -135,6 +136,19 @@ public class PlayerMovement : MonoBehaviour
             Vector3 localScale = GetComponentInParent<Transform>().localScale;
             GetComponentInParent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
         }
+
+        if (midJump)
+        {
+            if (!isGrounded && animator.speed > 0)
+            {
+                animator.speed = 0;
+            }
+            else if (isGrounded)
+            {
+                animator.speed = 1;
+                midJump = false;
+            }
+        }
     }
 
     private bool IsGrounded()
@@ -162,7 +176,10 @@ public class PlayerMovement : MonoBehaviour
         jump = false; // so player doesn't keep jumping
     }
 
-
+    private void OnMidJump()
+    {
+        midJump = true;
+    }
 
     // HACK MUSIC STUFF
     //void SetFocus(Interactable newFocus)
