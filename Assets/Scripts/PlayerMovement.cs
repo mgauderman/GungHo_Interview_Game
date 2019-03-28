@@ -23,20 +23,14 @@ public class PlayerMovement : MonoBehaviour
 
     // jumping
     private bool jump;
-    private bool midJump;
+    //private bool midJump; // will be set true when jump animation reaches a certain point
+    private bool inAirFromJump; // true if player is in air because of jumping (instead of just falling)
     [SerializeField]
     private float jumpForce;
+
+    // left/right control
     private bool airControl;
     private bool facingLeft;
-
-    ////UI stuff
-    //[SerializeField]
-    //Stat otherHealth;
-
-    //// HACK MUSIC LA STUFF
-    //Camera cam;
-    //public Interactable focus;
-
 
     // Use this for initialization
     void Start()
@@ -44,13 +38,9 @@ public class PlayerMovement : MonoBehaviour
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         jump = false;
-        airControl = true;
+        airControl = true; // allows player to change directions in air
         facingLeft = true;
-
-        //otherHealth.Initialize("Healthy");
-
-        //// HACKMUSICLA STUFF
-        //cam = Camera.main;
+        inAirFromJump = false;
     }
 
     // Update is called once per frame
@@ -60,33 +50,9 @@ public class PlayerMovement : MonoBehaviour
 
         isGrounded = IsGrounded();
 
-        //otherHealth.CurrentValue -= 0.1f;
-
         HandleMovement(horizontal);
 
         HandleAnimation(horizontal);
-
-        //HandleUI();
-
-
-        // HACK MUSIC STUFF
-        //if( Input.GetMouseButtonDown(1))
-        //{
-        //    Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-        //    RaycastHit hit;
-
-        //    // If the ray hits
-        //    if (Physics.Raycast(ray, out hit, 100))
-        //    {
-        //        Interactable interactable = hit.collider.GetComponent<Interactable>();
-        //        if( interactable != null )
-        //        {
-        //            SetFocus(interactable);
-        //        }
-        //    }
-        //}
-
-
     }
 
     void Update()
@@ -96,16 +62,21 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleMovement(float horizontal)
     {
-        if ((isGrounded || airControl))
+        if (inAirFromJump && isGrounded)
+        {
+            inAirFromJump = false;
+        }
+
+        if ((isGrounded || airControl)) // update player's left/right velocity
         {
             rigidBody.velocity = new Vector2(speedMultiplier * horizontal, rigidBody.velocity.y);
         }
 
-        if (isGrounded && jump)
+        if (isGrounded && jump) // jump the player
         {
-            animator.SetFloat("walk", 0);
             isGrounded = false;
             rigidBody.AddForce(new Vector2(0, jumpForce));
+            inAirFromJump = true;
         }
 
         ResetValues();
@@ -121,34 +92,35 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleAnimation(float horizontal)
     {
-        animator.SetBool("jump", !isGrounded);
+        animator.SetBool("isGrounded", isGrounded);
+        animator.SetBool("inAirFromJump", inAirFromJump);
         animator.SetFloat("walk", Mathf.Abs(horizontal));
 
-        if (facingLeft && horizontal > 0.01f)
+        if (facingLeft && horizontal > 0.01f) // flip player from left to right
         {
             facingLeft = false;
-            Vector3 localScale = GetComponentInParent<Transform>().localScale; // flip player
+            Vector3 localScale = GetComponentInParent<Transform>().localScale;
             GetComponent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
         }
-        else if (!facingLeft && horizontal < -0.01f)
+        else if (!facingLeft && horizontal < -0.01f) // flip player from right to left
         {
             facingLeft = true;
             Vector3 localScale = GetComponentInParent<Transform>().localScale;
             GetComponentInParent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
         }
 
-        if (midJump)
-        {
-            if (!isGrounded && animator.speed > 0)
-            {
-                animator.speed = 0;
-            }
-            else if (isGrounded)
-            {
-                animator.speed = 1;
-                midJump = false;
-            }
-        }
+        //if (midJump) // if player is in middle of jump animation, pause animation until they hit ground
+        //{
+        //    if (!isGrounded && animator.speed > 0)
+        //    {
+        //        animator.speed = 0;
+        //    }
+        //    else if (isGrounded)
+        //    {
+        //        animator.speed = 1;
+        //        midJump = false;
+        //    }
+        //}
     }
 
     private bool IsGrounded()
@@ -178,13 +150,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnMidJump()
     {
-        midJump = true;
+        inAirFromJump = false;
     }
-
-    // HACK MUSIC STUFF
-    //void SetFocus(Interactable newFocus)
-    //{
-    //    focus = newFocus;
-    //}
-
 }
