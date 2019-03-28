@@ -22,11 +22,14 @@ public class PlayerMovement : MonoBehaviour
     private LayerMask whatIsGround;
 
     // jumping
-    private bool jump;
-    //private bool midJump; // will be set true when jump animation reaches a certain point
-    private bool inAirFromJump; // true if player is in air because of jumping (instead of just falling)
+    private bool jump; // only used to trigger the jump
+    private bool inAirFromJump; // true if player is in air because they jumped (instead of falling)
     [SerializeField]
     private float jumpForce;
+
+    // punching
+    private bool punch; // only used to trigger the punch
+    private bool isPunching;
 
     // left/right control
     private bool airControl;
@@ -43,7 +46,6 @@ public class PlayerMovement : MonoBehaviour
         inAirFromJump = false;
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
         float horizontal = Input.GetAxis("Horizontal");
@@ -55,6 +57,7 @@ public class PlayerMovement : MonoBehaviour
         HandleAnimation(horizontal);
     }
 
+    // Update is called once per frame
     void Update()
     {
         HandleInput();
@@ -66,13 +69,18 @@ public class PlayerMovement : MonoBehaviour
         {
             inAirFromJump = false;
         }
-
-        if ((isGrounded || airControl)) // update player's left/right velocity
+        
+        //if (isPunching)
+        //{
+        //    rigidBody.velocity = new Vector2(0, rigidBody.velocity.y);
+        //}
+   
+        if ((isGrounded && !isPunching) || (!isGrounded && airControl)) // update player's left/right velocity
         {
             rigidBody.velocity = new Vector2(speedMultiplier * horizontal, rigidBody.velocity.y);
         }
 
-        if (isGrounded && jump) // jump the player
+        if (isGrounded && jump && !isPunching) // jump the player
         {
             isGrounded = false;
             rigidBody.AddForce(new Vector2(0, jumpForce));
@@ -88,39 +96,35 @@ public class PlayerMovement : MonoBehaviour
         {
             jump = true;
         }
+        if (Input.GetMouseButtonDown(0))
+        {
+            punch = true;
+            isPunching = true;
+        }
     }
 
     private void HandleAnimation(float horizontal)
     {
         animator.SetBool("isGrounded", isGrounded);
         animator.SetBool("inAirFromJump", inAirFromJump);
+        animator.SetBool("punch", isPunching);
         animator.SetFloat("walk", Mathf.Abs(horizontal));
 
-        if (facingLeft && horizontal > 0.01f) // flip player from left to right
+        if (!isPunching)
         {
-            facingLeft = false;
-            Vector3 localScale = GetComponentInParent<Transform>().localScale;
-            GetComponent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
+            if (facingLeft && horizontal > 0.01f) // flip player from left to right
+            {
+                facingLeft = false;
+                Vector3 localScale = GetComponentInParent<Transform>().localScale;
+                GetComponent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
+            }
+            else if (!facingLeft && horizontal < -0.01f) // flip player from right to left
+            {
+                facingLeft = true;
+                Vector3 localScale = GetComponentInParent<Transform>().localScale;
+                GetComponentInParent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
+            }
         }
-        else if (!facingLeft && horizontal < -0.01f) // flip player from right to left
-        {
-            facingLeft = true;
-            Vector3 localScale = GetComponentInParent<Transform>().localScale;
-            GetComponentInParent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
-        }
-
-        //if (midJump) // if player is in middle of jump animation, pause animation until they hit ground
-        //{
-        //    if (!isGrounded && animator.speed > 0)
-        //    {
-        //        animator.speed = 0;
-        //    }
-        //    else if (isGrounded)
-        //    {
-        //        animator.speed = 1;
-        //        midJump = false;
-        //    }
-        //}
     }
 
     private bool IsGrounded()
@@ -143,13 +147,20 @@ public class PlayerMovement : MonoBehaviour
         return false;
     }
 
-    private void ResetValues()
+    private void ResetValues() 
     {
-        jump = false; // so player doesn't keep jumping
+        // prevent processing input twice
+        jump = false;
+        punch = false;
     }
 
-    private void OnMidJump()
+    private void OnMidJumpAnim()
     {
         inAirFromJump = false;
+    }
+
+    private void onEndPunchAnim()
+    {
+        isPunching = false;
     }
 }
