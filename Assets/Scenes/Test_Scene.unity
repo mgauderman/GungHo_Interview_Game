@@ -314,6 +314,7 @@ MonoBehaviour:
     maxDepth: 0
     minNormalAngle: 0
     maxNormalAngle: 0
+  retractSpeedMultiplier: 15
 --- !u!1 &366665494
 GameObject:
   m_ObjectHideFlags: 0

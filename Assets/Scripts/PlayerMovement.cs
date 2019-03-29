@@ -73,7 +73,7 @@ public class PlayerMovement : MonoBehaviour
             inAirFromJump = false;
         }
    
-        if (((isGrounded && !isPunching) || (!isGrounded && airControl)) && ! grappleSystem.IsSwinging()) // update player's left/right velocity
+        if (((isGrounded && !isPunching) || (!isGrounded && airControl)) && !grappleSystem.IsSwinging()) // update player's left/right velocity
         {
             rigidBody.velocity = new Vector2(speedMultiplier * horizontal, rigidBody.velocity.y);
         }
