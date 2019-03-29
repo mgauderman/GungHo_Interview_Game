@@ -7,10 +7,7 @@ public class PlayerMovement : MonoBehaviour
 {
     private Rigidbody2D rigidBody;
     private Animator animator;
-
-    [SerializeField]
-    private float speedMultiplier;
-
+    private GrappleSystem grappleSystem;
 
     // is grounded stuff
     private bool isGrounded;
@@ -34,12 +31,14 @@ public class PlayerMovement : MonoBehaviour
     // left/right control
     private bool airControl;
     private bool facingLeft;
+    [SerializeField]
+    private float speedMultiplier;
 
-    // Use this for initialization
     void Start()
     {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        grappleSystem = GetComponent<GrappleSystem>();
         jump = false;
         airControl = true; // allows player to change directions in air
         facingLeft = true;
@@ -56,8 +55,7 @@ public class PlayerMovement : MonoBehaviour
 
         HandleAnimation(horizontal);
     }
-
-    // Update is called once per frame
+    
     void Update()
     {
         HandleInput();
@@ -69,11 +67,6 @@ public class PlayerMovement : MonoBehaviour
         {
             inAirFromJump = false;
         }
-        
-        //if (isPunching)
-        //{
-        //    rigidBody.velocity = new Vector2(0, rigidBody.velocity.y);
-        //}
    
         if ((isGrounded && !isPunching) || (!isGrounded && airControl)) // update player's left/right velocity
         {
@@ -162,5 +155,11 @@ public class PlayerMovement : MonoBehaviour
     private void onEndPunchAnim()
     {
         isPunching = false;
+    }
+
+    private void onMidPunchAnim()
+    {
+        grappleSystem.doGrapple();
+        animator.speed = 0;
     }
 }
