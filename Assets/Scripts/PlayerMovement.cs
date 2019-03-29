@@ -9,6 +9,10 @@ public class PlayerMovement : MonoBehaviour
     private Animator animator;
     private GrappleSystem grappleSystem;
 
+    // camera
+    [SerializeField]
+    private Camera mainCamera;
+
     // is grounded stuff
     private bool isGrounded;
     [SerializeField]
@@ -34,7 +38,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private float speedMultiplier;
 
-    void Start()
+    void Awake()
     {
         rigidBody = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
@@ -59,6 +63,7 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         HandleInput();
+        HandleCamera();
     }
 
     private void HandleMovement(float horizontal)
@@ -68,7 +73,7 @@ public class PlayerMovement : MonoBehaviour
             inAirFromJump = false;
         }
    
-        if ((isGrounded && !isPunching) || (!isGrounded && airControl)) // update player's left/right velocity
+        if (((isGrounded && !isPunching) || (!isGrounded && airControl)) && ! grappleSystem.IsSwinging()) // update player's left/right velocity
         {
             rigidBody.velocity = new Vector2(speedMultiplier * horizontal, rigidBody.velocity.y);
         }
@@ -91,8 +96,19 @@ public class PlayerMovement : MonoBehaviour
         }
         if (Input.GetMouseButtonDown(0))
         {
-            punch = true;
-            isPunching = true;
+            if (!isPunching)
+            {
+                punch = true;
+                isPunching = true;
+            }
+            else if (grappleSystem.IsSwinging())
+            {
+                grappleSystem.RetractGrapple();
+            }
+        }
+        if (Input.GetMouseButtonDown(1))
+        {
+            grappleSystem.StopGrapple();
         }
     }
 
@@ -108,16 +124,23 @@ public class PlayerMovement : MonoBehaviour
             if (facingLeft && horizontal > 0.01f) // flip player from left to right
             {
                 facingLeft = false;
+                //transform.eulerAngles = new Vector3(0, 90, 0);
                 Vector3 localScale = GetComponentInParent<Transform>().localScale;
                 GetComponent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
             }
             else if (!facingLeft && horizontal < -0.01f) // flip player from right to left
             {
                 facingLeft = true;
+                //transform.eulerAngles = new Vector3(0, -90, 0);
                 Vector3 localScale = GetComponentInParent<Transform>().localScale;
                 GetComponentInParent<Transform>().localScale = new Vector3(localScale.x, localScale.y, localScale.z * -1.0f);
             }
         }
+    }
+
+    private void HandleCamera()
+    {
+        mainCamera.transform.position = new Vector3(transform.position.x, transform.position.y, mainCamera.transform.position.z);
     }
 
     private bool IsGrounded()
@@ -159,7 +182,18 @@ public class PlayerMovement : MonoBehaviour
 
     private void onMidPunchAnim()
     {
-        grappleSystem.doGrapple();
+        grappleSystem.DoGrapple();
         animator.speed = 0;
+        inAirFromJump = false;
+    }
+
+    public void OnEndGrapple()
+    {
+        animator.speed = 1;
+    }
+
+    public bool IsFacingLeft()
+    {
+        return facingLeft;
     }
 }
