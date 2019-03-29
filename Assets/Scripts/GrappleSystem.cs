@@ -17,7 +17,9 @@ public class GrappleSystem : MonoBehaviour
     [SerializeField]
     ContactFilter2D grappleContactFilter;
     [SerializeField]
-    float retractSpeedMultiplier;
+    private float retractSpeedMultiplier;
+    [SerializeField]
+    private Material grappleRendererMaterial;
 
     private DistanceJoint2D grappleJoint;
     private Rigidbody2D playerRB;
@@ -30,6 +32,7 @@ public class GrappleSystem : MonoBehaviour
     private Vector2 grappleShootingPointPosition;
     private float grappleMaxCastDistance;
     private GameObject grappledObject;
+    private bool animatingGrapple;
 
     void Awake()
     {
@@ -46,6 +49,7 @@ public class GrappleSystem : MonoBehaviour
         grappleRenderer.positionCount = 2;
         grappledObject = null;
         grappleMaxCastDistance = 9f;
+        animatingGrapple = false;
     }
 
     void Update()
@@ -116,11 +120,15 @@ public class GrappleSystem : MonoBehaviour
         {
             grappleAttached = true;
             grappledObject = overlapColliders[closestContact].gameObject;
-            if (grappledObject.Equals(hit.collider.gameObject)) // if nothing blocks way to grapple point
+            if (grappledObject.Equals(hit.collider.gameObject)) // if nothing blocks way to grapple point, shoot grapple
             {
                 grappleJoint.distance = Vector2.Distance(grappleShootingPointPosition, grappledObject.transform.position);
                 grappleJoint.enabled = true;
-                if (!playerMovement.IsFacingLeft()) // make sure the joint starts on the fist in direction player is facing
+                grappleRenderer.SetPosition(0, grappleShootingPointPosition);
+                StartCoroutine("AnimateGrappleToAnchor");
+
+                // Make sure the joint starts on correct side of player based on player's rotation
+                if (!playerMovement.IsFacingLeft()) 
                 {
                     grappleJoint.anchor = new Vector2(Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
                 }
@@ -138,13 +146,33 @@ public class GrappleSystem : MonoBehaviour
         }
     }
 
+    IEnumerator AnimateGrappleToAnchor() // makes grapple appear as if it is extending from player's hand
+    {
+        animatingGrapple = true;
+        float lerpAmount = 0f;
+        while( lerpAmount <= 1 )
+        {
+            grappleRenderer.SetPosition(1, Vector2.Lerp(grappleShootingPointPosition, grappleAnchorPoint.transform.position, lerpAmount));
+            yield return null;
+            lerpAmount += 3 * Time.deltaTime;
+        }
+        grappleRenderer.SetPosition(1, grappleAnchorPoint.transform.position); 
+        animatingGrapple = false;
+    }
+
     private void UpdateGrapplePositions()
     {
         if (grappledObject != null)
         {
             grappleRenderer.SetPosition(0, grappleShootingPointPosition);
-            grappleRenderer.SetPosition(1, grappledObject.transform.position);
+            if (!animatingGrapple) // after done animating grapple
+            {
+                grappleRenderer.SetPosition(1, grappledObject.transform.position);
+            }
             grappleAnchorPoint.transform.position = grappledObject.transform.position;
+
+            // update tiling for line renderer
+            grappleRendererMaterial.mainTextureScale = new Vector2(Vector2.Distance(grappleAnchorPoint.transform.position, grappleShootingPointPosition), 1);
         }
     }
 
@@ -158,10 +186,10 @@ public class GrappleSystem : MonoBehaviour
     {
         Vector2 startPosition = grappleShootingPointPosition;
         Vector2 grappleAnchorPointPosition = grappleAnchorPoint.transform.position;
-        float distanceToAnchorFromStart = Vector2.Distance(grappleShootingPointPosition, grappleAnchorPointPosition);
+        float distanceToAnchorFromStart = Vector2.Distance(startPosition, grappleAnchorPointPosition);
         Vector2 directionOfTravel = (grappleAnchorPointPosition - startPosition).normalized;
-        //playerRB.velocity = new Vector2(0, 0);
-       while (distanceToAnchorFromStart > Vector2.Distance(transform.position, startPosition) + 2) {
+        while (distanceToAnchorFromStart > Vector2.Distance(grappleShootingPointPosition, startPosition))
+        {
             playerRB.velocity = new Vector2(retractSpeedMultiplier * directionOfTravel.x, retractSpeedMultiplier * directionOfTravel.y);
             yield return null;
         }
