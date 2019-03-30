@@ -116,39 +116,47 @@ public class GrappleSystem : MonoBehaviour
         // If the hit object is same as closestContact, nothing is in the way so grapple onto it
         if (hit.collider != null && closestContact != -1 && overlapColliders[closestContact].gameObject.Equals(hit.collider.gameObject))
         {
-            grappleAttached = true;
-            grappledObject = overlapColliders[closestContact].gameObject;
-            grappleJoint.distance = Vector2.Distance(grappleShootingPointPosition, grappledObject.transform.position);
-            grappleJoint.enabled = true;
-            grappleRenderer.SetPosition(0, grappleShootingPointPosition);
-            grappleRenderer.enabled = true;
-            StartCoroutine("AnimateGrappleToAnchor");
-
-            // Make sure the joint starts on correct side of player based on player's rotation
-            if (!playerMovement.IsFacingLeft())
-            {
-                grappleJoint.anchor = new Vector2(Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
-            }
-            else
-            {
-                grappleJoint.anchor = new Vector2(-Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
-            }
+            grappleToObject(overlapColliders[closestContact].gameObject, false);
         }
         else // shoot the grapple straight forward
         {
             grappleAnchorPoint.transform.position = GetIdealForwardAnchorPosition();
             grappleRenderer.enabled = true;
             shootingGrappleStraight = true;
-            StartCoroutine("AnimateGrappleToAnchor");
+            StartCoroutine("AnimateGrappleForward");
         }
     }
 
-    IEnumerator AnimateGrappleToAnchor() // makes grapple appear as if it is extending from player's hand
+    private void grappleToObject(GameObject objectToGrapple, bool fromStraightGrapple)
+    {
+        grappledObject = objectToGrapple;
+        grappleAttached = true;
+        grappleJoint.distance = Vector2.Distance(grappleShootingPointPosition, grappledObject.transform.position);
+        grappleJoint.enabled = true;
+        grappleRenderer.SetPosition(0, grappleShootingPointPosition);
+        grappleRenderer.enabled = true;
+        if (!fromStraightGrapple)
+        {
+            StartCoroutine("AnimateGrappleToAnchor");
+        }
+
+        // Make sure the joint starts on correct side of player based on player's rotation
+        if (!playerMovement.IsFacingLeft())
+        {
+            grappleJoint.anchor = new Vector2(Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
+        }
+        else
+        {
+            grappleJoint.anchor = new Vector2(-Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
+        }
+    }
+
+    IEnumerator AnimateGrappleToAnchor() // makes grapple appear as if it is extending from player's hand to a target
     {
         animatingGrapple = true;
-        float lerpAmount = 0f;
+        float lerpAmount = 0.0f;
         float grappleAnimationSpeed = 4.0f;
-        while (lerpAmount <= 1)
+        while (lerpAmount < 1)
         {
             grappleRenderer.SetPosition(1, Vector2.Lerp(grappleShootingPointPosition, grappleAnchorPoint.transform.position, lerpAmount));
             yield return null;
@@ -160,17 +168,9 @@ public class GrappleSystem : MonoBehaviour
 
     private void UpdateGrapplePositions()
     {
-        if ((grappleAttached && grappledObject != null) || shootingGrappleStraight)
+        if ((grappleAttached && grappledObject != null))
         {
-            if (shootingGrappleStraight)
-            {
-                grappleAnchorPoint.transform.position = GetIdealForwardAnchorPosition();
-            }
-            else
-            {
-                grappleAnchorPoint.transform.position = grappledObject.transform.position;
-                print("hello 1");
-            }
+            grappleAnchorPoint.transform.position = grappledObject.transform.position;
             grappleRenderer.SetPosition(0, grappleShootingPointPosition);
             if (!animatingGrapple) // after done animating grapple
             {
@@ -180,6 +180,67 @@ public class GrappleSystem : MonoBehaviour
             // update tiling for line renderer
             grappleRendererMaterial.mainTextureScale = new Vector2(Vector2.Distance(grappleAnchorPoint.transform.position, grappleShootingPointPosition), 1);
         }
+        else if (shootingGrappleStraight)
+        {
+            grappleAnchorPoint.transform.position = GetIdealForwardAnchorPosition();
+            grappleRenderer.SetPosition(0, grappleShootingPointPosition);
+            if(!animatingGrapple) // reset grapple after done animating (if it hasn't found a target)
+            {
+                grappleRenderer.SetPosition(1, grappleAnchorPoint.transform.position);
+            }
+
+            // update tiling for line renderer
+            grappleRendererMaterial.mainTextureScale = new Vector2(Vector2.Distance(grappleAnchorPoint.transform.position, grappleShootingPointPosition), 1);
+        }
+    }
+
+    IEnumerator AnimateGrappleForward() // animates grapple straight ahead and raycasts to see if it hits a potential target
+    {
+        animatingGrapple = true;
+        float lerpAmount = 0.0f;
+        float grappleAnimationSpeed = 4.0f;
+        float numSecondsExtended = 0.5f;
+        float numSecondsExtendedSoFar = 0.0f;
+        while (numSecondsExtendedSoFar < numSecondsExtended) // only end once grapple is done extending
+        {
+            Vector2 newPosition = Vector2.Lerp(grappleShootingPointPosition, grappleAnchorPoint.transform.position, lerpAmount);
+            float maxDistance = Vector2.Distance(grappleShootingPointPosition, newPosition);
+            Vector2 aimDirection = ((Vector2)grappleAnchorPoint.transform.position - grappleShootingPointPosition).normalized;
+            var hit = Physics2D.Raycast(grappleShootingPointPosition, aimDirection, maxDistance, grappleLayerMask);
+            if (hit.collider != null)
+            {
+                if (hit.collider.gameObject.layer == LayerMask.NameToLayer("Grapple")) // if it hit a grappling point, grapple onto it
+                {
+                    shootingGrappleStraight = false;
+                    animatingGrapple = false;
+                    grappleToObject(hit.collider.gameObject, true);
+                    yield break;
+                }
+                else // kill the grapple because it hit a non-grapplable object
+                {
+                    ResetGrapple();
+                    yield break;
+                }
+            }
+            grappleRenderer.SetPosition(1, newPosition);
+
+            yield return null;
+            if (animatingGrapple)
+            {
+                lerpAmount += grappleAnimationSpeed * Time.deltaTime;
+                if (lerpAmount >= 1.0f)
+                {
+                    lerpAmount = 1.0f;
+                    animatingGrapple = false;
+                }
+            }
+            else
+            {
+                numSecondsExtendedSoFar += Time.deltaTime;
+            }
+        }
+        // Reset once grapple finishes being out after not colliding with anything
+        ResetGrapple();
     }
 
     private Vector2 GetIdealForwardAnchorPosition() // gets the position in front of player to place the anchor when there's no target
@@ -198,12 +259,10 @@ public class GrappleSystem : MonoBehaviour
     {
         grappleJoint.enabled = false;
         StartCoroutine("PropelPlayerToAnchor");
-        print("hello 2");
     }
 
     IEnumerator PropelPlayerToAnchor()
     {
-        print("hello3");
         Vector2 startPosition = grappleShootingPointPosition;
         Vector2 grappleAnchorPointPosition = grappleAnchorPoint.transform.position;
         float distanceToAnchorFromStart = Vector2.Distance(startPosition, grappleAnchorPointPosition);
@@ -231,6 +290,8 @@ public class GrappleSystem : MonoBehaviour
         grappleRenderer.enabled = false;
         grappledObject = null;
         shootingGrappleStraight = false;
+        animatingGrapple = false;
+        animatingGrapple = false;
         playerMovement.OnEndGrapple();
     }
 

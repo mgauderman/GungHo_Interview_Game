@@ -71,10 +71,14 @@ public class PlayerMovement : MonoBehaviour
             inAirFromJump = false;
         }
    
-        if (((isGrounded && !isPunching) || (!isGrounded && airControl)) && !grappleSystem.IsSwinging()) // update player's left/right velocity
+        if (!isGrounded && airControl && !grappleSystem.IsSwinging()) // update player's left/right velocity
         {
             float maxXVelocity = Mathf.Max(Mathf.Abs(rigidBody.velocity.x), speedMultiplier); // in case player currently has a higher x velocity than speed multiplier
             rigidBody.velocity = new Vector2(Mathf.Clamp(rigidBody.velocity.x + speedMultiplier * horizontal, -maxXVelocity, maxXVelocity), rigidBody.velocity.y);
+        }
+        else if (isGrounded && !isPunching && !grappleSystem.IsSwinging())
+        {
+            rigidBody.velocity = new Vector2(horizontal * speedMultiplier, rigidBody.velocity.y);
         }
 
         if (isGrounded && jump && !isPunching) // jump the player
