@@ -153,18 +153,17 @@ public class GrappleSystem : MonoBehaviour
 
     IEnumerator AnimateGrappleToAnchor() // makes grapple appear as if it is extending from player's hand to a target
     {
-        //animatingGrapple = true;
-        //float lerpAmount = 0.0f;
-        //float grappleAnimationSpeed = 4.0f;
-        //while (lerpAmount < 1)
-        //{
-        //    grappleRenderer.SetPosition(1, Vector2.Lerp(grappleShootingPointPosition, grappleAnchorPoint.transform.position, lerpAmount));
-        //    yield return null;
-        //    lerpAmount += grappleAnimationSpeed * Time.deltaTime;
-        //}
-        //grappleRenderer.SetPosition(1, grappleAnchorPoint.transform.position);
-        //animatingGrapple = false;
-        yield break;
+        animatingGrapple = true;
+        float lerpAmount = 0.0f;
+        float grappleAnimationSpeed = 4.0f;
+        while (lerpAmount < 1)
+        {
+            grappleRenderer.SetPosition(1, Vector2.Lerp(grappleShootingPointPosition, grappleAnchorPoint.transform.position, lerpAmount));
+            yield return null;
+            lerpAmount += grappleAnimationSpeed * Time.deltaTime;
+        }
+        grappleRenderer.SetPosition(1, grappleAnchorPoint.transform.position);
+        animatingGrapple = false;
     }
 
     private void UpdateGrapplePositions()
