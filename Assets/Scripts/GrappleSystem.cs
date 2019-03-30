@@ -20,6 +20,8 @@ public class GrappleSystem : MonoBehaviour
     private float retractSpeedMultiplier;
     [SerializeField]
     private Material grappleRendererMaterial;
+    [SerializeField]
+    private float grappleMaxCastDistance;
 
     private DistanceJoint2D grappleJoint;
     private Rigidbody2D playerRB;
@@ -30,7 +32,6 @@ public class GrappleSystem : MonoBehaviour
     private Rigidbody2D grappleAnchorPointRB;
     private Collider2D[] overlapColliders;
     private Vector2 grappleShootingPointPosition;
-    private float grappleMaxCastDistance;
     private GameObject grappledObject;
     private bool animatingGrapple;
     private bool shootingGrappleStraight; // true while player is shooting grapple with no target
@@ -49,7 +50,6 @@ public class GrappleSystem : MonoBehaviour
         overlapColliders = new Collider2D[10];
         grappleRenderer.positionCount = 2;
         grappledObject = null;
-        grappleMaxCastDistance = 9f;
         animatingGrapple = false;
         shootingGrappleStraight = false;
     }
