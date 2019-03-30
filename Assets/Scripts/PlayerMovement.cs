@@ -29,7 +29,6 @@ public class PlayerMovement : MonoBehaviour
     private float jumpForce;
 
     // punching
-    private bool punch; // only used to trigger the punch
     private bool isPunching;
 
     // left/right control
@@ -100,9 +99,8 @@ public class PlayerMovement : MonoBehaviour
         }
         if (Input.GetMouseButtonDown(0))
         {
-            if (!isPunching)
+            if (!isPunching && !animator.GetCurrentAnimatorStateInfo(0).IsName("Punch"))
             {
-                punch = true;
                 isPunching = true;
             }
             else if (grappleSystem.IsSwinging())
@@ -171,7 +169,6 @@ public class PlayerMovement : MonoBehaviour
     {
         // prevent processing input twice
         jump = false;
-        punch = false;
     }
 
     private void OnMidJumpAnim()
