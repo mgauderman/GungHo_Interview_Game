@@ -33,10 +33,12 @@ public class PlayerMovement : MonoBehaviour
     private bool isPunching;
 
     // left/right control
+    private float horizontal; // horizontal axis
     private bool airControl;
     private bool facingLeft;
     [SerializeField]
     private float speedMultiplier;
+
 
     void Awake()
     {
@@ -51,18 +53,14 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        float horizontal = Input.GetAxis("Horizontal");
-
         isGrounded = IsGrounded();
-
         HandleMovement(horizontal);
-
-        HandleAnimation(horizontal);
     }
     
     void Update()
     {
         HandleInput();
+        HandleAnimation();
         HandleCamera();
     }
 
@@ -75,7 +73,8 @@ public class PlayerMovement : MonoBehaviour
    
         if (((isGrounded && !isPunching) || (!isGrounded && airControl)) && !grappleSystem.IsSwinging()) // update player's left/right velocity
         {
-            rigidBody.velocity = new Vector2(speedMultiplier * horizontal, rigidBody.velocity.y);
+            float maxXVelocity = Mathf.Max(Mathf.Abs(rigidBody.velocity.x), speedMultiplier); // in case player currently has a higher x velocity than speed multiplier
+            rigidBody.velocity = new Vector2(Mathf.Clamp(rigidBody.velocity.x + speedMultiplier * horizontal, -maxXVelocity, maxXVelocity), rigidBody.velocity.y);
         }
 
         if (isGrounded && jump && !isPunching) // jump the player
@@ -90,6 +89,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleInput()
     {
+        horizontal = Input.GetAxis("Horizontal");
         if (Input.GetKeyDown(KeyCode.Space))
         {
             jump = true;
@@ -112,7 +112,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void HandleAnimation(float horizontal)
+    private void HandleAnimation()
     {
         animator.SetBool("isGrounded", isGrounded);
         animator.SetBool("inAirFromJump", inAirFromJump);

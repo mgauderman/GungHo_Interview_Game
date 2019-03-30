@@ -7,7 +7,7 @@ public class GrappleSystem : MonoBehaviour
     [SerializeField]
     private GameObject grappleAnchorPoint;
     [SerializeField]
-    private GameObject grappleShootingPoint;    
+    private GameObject grappleShootingPoint;
     [SerializeField]
     private PolygonCollider2D grappleCollider;
     [SerializeField]
@@ -33,6 +33,7 @@ public class GrappleSystem : MonoBehaviour
     private float grappleMaxCastDistance;
     private GameObject grappledObject;
     private bool animatingGrapple;
+    private bool shootingGrappleStraight; // true while player is shooting grapple with no target
 
     void Awake()
     {
@@ -50,6 +51,7 @@ public class GrappleSystem : MonoBehaviour
         grappledObject = null;
         grappleMaxCastDistance = 9f;
         animatingGrapple = false;
+        shootingGrappleStraight = false;
     }
 
     void Update()
@@ -60,15 +62,12 @@ public class GrappleSystem : MonoBehaviour
             ShootGrapple();
         }
 
-        if(stopGrapple) // if player right clicks
+        if (stopGrapple) // if player right clicks
         {
             ResetGrapple();
         }
 
-        if(grappleAttached) // if player is currently tethered
-        {
-            UpdateGrapplePositions(); 
-        }
+        UpdateGrapplePositions();
         ResetValues();
     }
 
@@ -92,7 +91,7 @@ public class GrappleSystem : MonoBehaviour
         Vector3 aimDirectionVector;
         if (closestContact != -1) // if the grapple found something to hook onto
         {
-            aimDirectionVector = (Vector2)overlapColliders[closestContact].transform.position - grappleShootingPointPosition;
+            aimDirectionVector = ((Vector2)overlapColliders[closestContact].transform.position - grappleShootingPointPosition).normalized;
         }
         else
         {
@@ -105,44 +104,42 @@ public class GrappleSystem : MonoBehaviour
                 aimDirectionVector = Vector2.right;
             }
         }
-        aimDirectionVector.Normalize();
         float aimAngle = Mathf.Atan2(aimDirectionVector.y, aimDirectionVector.x);
         if (aimAngle < 0f)
         {
             aimAngle = Mathf.PI * 2 + aimAngle;
         }
 
-        // Shoot the grapple
-        grappleRenderer.enabled = true;
+        // Check line of sight to closestTarget
         var hit = Physics2D.Raycast(grappleShootingPointPosition, aimDirectionVector, grappleMaxCastDistance, grappleLayerMask);
 
-        if (hit.collider != null && closestContact != -1) // TODO: look at this section more
+        // If the hit object is same as closestContact, nothing is in the way so grapple onto it
+        if (hit.collider != null && closestContact != -1 && overlapColliders[closestContact].gameObject.Equals(hit.collider.gameObject))
         {
             grappleAttached = true;
             grappledObject = overlapColliders[closestContact].gameObject;
-            if (grappledObject.Equals(hit.collider.gameObject)) // if nothing blocks way to grapple point, shoot grapple
-            {
-                grappleJoint.distance = Vector2.Distance(grappleShootingPointPosition, grappledObject.transform.position);
-                grappleJoint.enabled = true;
-                grappleRenderer.SetPosition(0, grappleShootingPointPosition);
-                StartCoroutine("AnimateGrappleToAnchor");
+            grappleJoint.distance = Vector2.Distance(grappleShootingPointPosition, grappledObject.transform.position);
+            grappleJoint.enabled = true;
+            grappleRenderer.SetPosition(0, grappleShootingPointPosition);
+            grappleRenderer.enabled = true;
+            StartCoroutine("AnimateGrappleToAnchor");
 
-                // Make sure the joint starts on correct side of player based on player's rotation
-                if (!playerMovement.IsFacingLeft()) 
-                {
-                    grappleJoint.anchor = new Vector2(Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
-                }
-                else
-                {
-                    grappleJoint.anchor = new Vector2(-Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
-                }
+            // Make sure the joint starts on correct side of player based on player's rotation
+            if (!playerMovement.IsFacingLeft())
+            {
+                grappleJoint.anchor = new Vector2(Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
+            }
+            else
+            {
+                grappleJoint.anchor = new Vector2(-Mathf.Abs(grappleJoint.anchor.x), grappleJoint.anchor.y);
             }
         }
-        else
+        else // shoot the grapple straight forward
         {
-            grappleRenderer.enabled = false;
-            grappleAttached = false;
-            grappleJoint.enabled = false;
+            grappleAnchorPoint.transform.position = GetIdealForwardAnchorPosition();
+            grappleRenderer.enabled = true;
+            shootingGrappleStraight = true;
+            StartCoroutine("AnimateGrappleToAnchor");
         }
     }
 
@@ -150,45 +147,68 @@ public class GrappleSystem : MonoBehaviour
     {
         animatingGrapple = true;
         float lerpAmount = 0f;
-        while( lerpAmount <= 1 )
+        float grappleAnimationSpeed = 4.0f;
+        while (lerpAmount <= 1)
         {
             grappleRenderer.SetPosition(1, Vector2.Lerp(grappleShootingPointPosition, grappleAnchorPoint.transform.position, lerpAmount));
             yield return null;
-            lerpAmount += 3 * Time.deltaTime;
+            lerpAmount += grappleAnimationSpeed * Time.deltaTime;
         }
-        grappleRenderer.SetPosition(1, grappleAnchorPoint.transform.position); 
+        grappleRenderer.SetPosition(1, grappleAnchorPoint.transform.position);
         animatingGrapple = false;
     }
 
     private void UpdateGrapplePositions()
     {
-        if (grappledObject != null)
+        if ((grappleAttached && grappledObject != null) || shootingGrappleStraight)
         {
+            if (shootingGrappleStraight)
+            {
+                grappleAnchorPoint.transform.position = GetIdealForwardAnchorPosition();
+            }
+            else
+            {
+                grappleAnchorPoint.transform.position = grappledObject.transform.position;
+                print("hello 1");
+            }
             grappleRenderer.SetPosition(0, grappleShootingPointPosition);
             if (!animatingGrapple) // after done animating grapple
             {
-                grappleRenderer.SetPosition(1, grappledObject.transform.position);
+                grappleRenderer.SetPosition(1, grappleAnchorPoint.transform.position);
             }
-            grappleAnchorPoint.transform.position = grappledObject.transform.position;
 
             // update tiling for line renderer
             grappleRendererMaterial.mainTextureScale = new Vector2(Vector2.Distance(grappleAnchorPoint.transform.position, grappleShootingPointPosition), 1);
         }
     }
 
+    private Vector2 GetIdealForwardAnchorPosition() // gets the position in front of player to place the anchor when there's no target
+    {
+        if(playerMovement.IsFacingLeft())
+        {
+            return grappleShootingPointPosition - new Vector2(grappleMaxCastDistance, 0);
+        }
+        else
+        {
+            return grappleShootingPointPosition + new Vector2(grappleMaxCastDistance, 0);
+        }
+    }
+
     public void RetractGrapple() // this should make player get shot out in direction of grapple point (when they left click while tethered)
     {
         grappleJoint.enabled = false;
-        StartCoroutine("PropelPlayer");
+        StartCoroutine("PropelPlayerToAnchor");
+        print("hello 2");
     }
 
-    IEnumerator PropelPlayer()
+    IEnumerator PropelPlayerToAnchor()
     {
+        print("hello3");
         Vector2 startPosition = grappleShootingPointPosition;
         Vector2 grappleAnchorPointPosition = grappleAnchorPoint.transform.position;
         float distanceToAnchorFromStart = Vector2.Distance(startPosition, grappleAnchorPointPosition);
         Vector2 directionOfTravel = (grappleAnchorPointPosition - startPosition).normalized;
-        while (distanceToAnchorFromStart > Vector2.Distance(grappleShootingPointPosition, startPosition))
+        while (distanceToAnchorFromStart > Vector2.Distance(grappleShootingPointPosition, startPosition) && grappleAttached)
         {
             playerRB.velocity = new Vector2(retractSpeedMultiplier * directionOfTravel.x, retractSpeedMultiplier * directionOfTravel.y);
             yield return null;
@@ -208,7 +228,9 @@ public class GrappleSystem : MonoBehaviour
         grappleAttached = false;
         grappleRenderer.SetPosition(0, grappleShootingPointPosition);
         grappleRenderer.SetPosition(1, grappleShootingPointPosition);
+        grappleRenderer.enabled = false;
         grappledObject = null;
+        shootingGrappleStraight = false;
         playerMovement.OnEndGrapple();
     }
 

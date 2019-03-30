@@ -314,7 +314,7 @@ MonoBehaviour:
     maxDepth: 0
     minNormalAngle: 0
     maxNormalAngle: 0
-  retractSpeedMultiplier: 15
+  retractSpeedMultiplier: 13
   grappleRendererMaterial: {fileID: 2100000, guid: 24e5148469a34c64eaa146cbbe8358a8,
     type: 2}
 --- !u!1 &366665494
@@ -1426,8 +1426,8 @@ PolygonCollider2D:
   m_Points:
     m_Paths:
     - - {x: -0.04, y: 0}
-      - {x: -8, y: 5}
-      - {x: -8, y: -5}
+      - {x: -10, y: 5}
+      - {x: -10, y: -5}
 --- !u!1 &1664354746
 GameObject:
   m_ObjectHideFlags: 0
