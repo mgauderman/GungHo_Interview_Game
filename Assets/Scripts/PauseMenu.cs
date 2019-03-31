@@ -1,14 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class PauseMenu : MonoBehaviour
 {
     [SerializeField]
     private GameObject pauseMenuUI;
     [SerializeField]
-    private string startLevelName;
+    private GameManager gameManager;
 
     public static bool gameIsPaused = false;
 
@@ -42,14 +41,15 @@ public class PauseMenu : MonoBehaviour
         gameIsPaused = true;
     }
 
-    public void Restart()
+    public void OnRestartButtonPressed()
     {
+        print("pressed_restart");
         Time.timeScale = 1f;
-        SceneManager.LoadScene(startLevelName);
+        gameManager.StartGame();
     }
 
-    public void Quit()
+    public void OnQuitButtonPressed()
     {
-        Application.Quit();
+        gameManager.QuitGame();
     }
 }

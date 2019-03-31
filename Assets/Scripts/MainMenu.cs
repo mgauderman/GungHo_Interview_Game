@@ -1,19 +1,18 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class MainMenu : MonoBehaviour
 {
     [SerializeField]
-    private string startLevelName;
+    private GameManager gameManager;
 
-    public void StartGame()
+    public void OnPlayButtonPressed()
     {
-        SceneManager.LoadScene(startLevelName);
+        gameManager.StartGame();
     }
-    public void QuitGame()
+    public void OnQuitButtonPressed()
     {
-        Application.Quit();
+        gameManager.QuitGame();
     }
 }

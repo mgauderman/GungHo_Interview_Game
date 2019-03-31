@@ -92,25 +92,28 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleInput()
     {
-        horizontal = Input.GetAxis("Horizontal");
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (!PauseMenu.gameIsPaused)
         {
-            jump = true;
-        }
-        if (Input.GetMouseButtonDown(0))
-        {
-            if (!isPunching && !animator.GetCurrentAnimatorStateInfo(0).IsName("Punch"))
+            horizontal = Input.GetAxis("Horizontal");
+            if (Input.GetKeyDown(KeyCode.Space))
             {
-                isPunching = true;
+                jump = true;
             }
-            else if (grappleSystem.IsSwinging())
+            if (Input.GetMouseButtonDown(0))
             {
-                grappleSystem.RetractGrapple();
+                if (!isPunching && !animator.GetCurrentAnimatorStateInfo(0).IsName("Punch"))
+                {
+                    isPunching = true;
+                }
+                else if (grappleSystem.IsSwinging())
+                {
+                    grappleSystem.RetractGrapple();
+                }
             }
-        }
-        if (Input.GetMouseButtonDown(1))
-        {
-            grappleSystem.StopGrapple();
+            if (Input.GetMouseButtonDown(1))
+            {
+                grappleSystem.StopGrapple();
+            }
         }
     }
 
