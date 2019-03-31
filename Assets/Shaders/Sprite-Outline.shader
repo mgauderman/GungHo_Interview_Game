@@ -28,6 +28,8 @@
 		Pass
 		{
 			CGPROGRAM
+			#pragma shader_feature OUTLINE_ON
+			#pragma shader_feature DIFFUSE_ON
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma multi_compile _ PIXELSNAP_ON
@@ -71,28 +73,36 @@
 			{
 				fixed4 c = tex2D(_MainTex, IN.texcoord) * IN.color;
 				c.rgb *= c.a;
-				fixed4 outlineColor = _OutlineColor;
-				outlineColor.a *= ceil(c.a);
-				outlineColor.rgb *= outlineColor.a;
-				if (c.a < _OutlineAlpha) {
-					fixed rightAlpha = tex2D(_MainTex, IN.texcoord + fixed2(0, _MainTex_TexelSize.x)).a;
-					fixed leftAlpha = tex2D(_MainTex, IN.texcoord - fixed2(0, _MainTex_TexelSize.x)).a;
-					fixed upAlpha = tex2D(_MainTex, IN.texcoord + fixed2(0, _MainTex_TexelSize.y)).a;
-					fixed downAlpha = tex2D(_MainTex, IN.texcoord - fixed2(0, _MainTex_TexelSize.y)).a;
+				fixed a = c.a;
+				#if !DIFFUSE_ON
+					c = (0, 0, 0, 0);
+				#endif
 
-					if (_OutlineAlpha < rightAlpha || _OutlineAlpha < leftAlpha || _OutlineAlpha < upAlpha || _OutlineAlpha < downAlpha)
-					{
-						c = outlineColor;
+				#if OUTLINE_ON
+					if (a < _OutlineAlpha) {
+						// check pixels adjacent to current pixel to see if they are above threshold alpha
+						fixed rightAlpha = tex2D(_MainTex, IN.texcoord + fixed2(0, _MainTex_TexelSize.x)).a;
+						fixed leftAlpha = tex2D(_MainTex, IN.texcoord - fixed2(0, _MainTex_TexelSize.x)).a;
+						fixed upAlpha = tex2D(_MainTex, IN.texcoord + fixed2(0, _MainTex_TexelSize.y)).a;
+						fixed downAlpha = tex2D(_MainTex, IN.texcoord - fixed2(0, _MainTex_TexelSize.y)).a;
+
+						if (_OutlineAlpha < rightAlpha || _OutlineAlpha < leftAlpha || _OutlineAlpha < upAlpha || _OutlineAlpha < downAlpha)
+						{
+							c = _OutlineColor;
+						}
 					}
-				}
-				else if (IN.texcoord.x < _MainTex_TexelSize.x || IN.texcoord.x + _MainTex_TexelSize.x > 1 ||
-						 IN.texcoord.y < _MainTex_TexelSize.y || IN.texcoord.y + _MainTex_TexelSize.y > 1)
-				{
-					c = outlineColor;
-				}
+					// if there is a non-transparent pixel on edge of sprite, make it outlineColor so there isn't a hole in outline
+					else if (IN.texcoord.x < _MainTex_TexelSize.x || IN.texcoord.x + _MainTex_TexelSize.x > 1 || 
+								IN.texcoord.y < _MainTex_TexelSize.y || IN.texcoord.y + _MainTex_TexelSize.y > 1)
+					{
+						c = _OutlineColor;
+					}
+				#endif
+
 				return c;					
 			}
 			ENDCG
 		}
 	}
+	CustomEditor "CustomShaderInspector"
 }

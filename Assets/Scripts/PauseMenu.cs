@@ -43,7 +43,6 @@ public class PauseMenu : MonoBehaviour
 
     public void OnRestartButtonPressed()
     {
-        print("pressed_restart");
         Time.timeScale = 1f;
         gameManager.StartGame();
     }

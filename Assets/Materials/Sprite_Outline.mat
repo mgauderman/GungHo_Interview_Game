@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Sprite_Outline
   m_Shader: {fileID: 4800000, guid: c0665703c68618b499ff36616b2514d7, type: 3}
-  m_ShaderKeywords: ETC1_EXTERNAL_ALPHA
+  m_ShaderKeywords: DIFFUSE_ON ETC1_EXTERNAL_ALPHA OUTLINE_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
