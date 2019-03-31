@@ -22,6 +22,8 @@ public class GrappleSystem : MonoBehaviour
     private Material grappleRendererMaterial;
     [SerializeField]
     private float grappleMaxCastDistance;
+    [SerializeField]
+    BarrierSystem barrierSystem;
 
     private DistanceJoint2D grappleJoint;
     private Rigidbody2D playerRB;
@@ -129,6 +131,7 @@ public class GrappleSystem : MonoBehaviour
 
     private void grappleToObject(GameObject objectToGrapple, bool fromStraightGrapple)
     {
+        barrierSystem.ChangeColor(objectToGrapple.tag);
         grappledObject = objectToGrapple;
         grappleAttached = true;
         grappleJoint.distance = Vector2.Distance(grappleShootingPointPosition, grappledObject.transform.position);
